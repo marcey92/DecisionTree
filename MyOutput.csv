@@ -1,0 +1,19 @@
+split()
+attribute <- class
+child 0<- 0
+child 1<- 1
+0
+1
+1
+split()
+pure
+0
+0
+1
+split()
+pure
+class=1
+	Class: 1
+class=0
+	Class: 0
+
