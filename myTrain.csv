@@ -1,0 +1,7 @@
+a,b,end
+T,T,a
+T,T,a
+T,F,=
+F,F,+
+F,T,-
+F,T,-

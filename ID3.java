@@ -182,26 +182,51 @@ class ID3 {
 		}
 	}
 
-	public float entropy(String[][] examples){
+	public double entropy(String[][] examples){
 		//TODO
-		float[] classSum = new float[attributes.length];
 
-		for each example{
-			
-			for class. in classes{
-				
-				if example[attributes-1] == class.
-					classSum ++;
+		double denominator = examples.length;
 
+		double[] classCount = new double[stringCount[attributes-1]];
+		for(double c: classCount){
+			c = 0d;
+		}
+
+		for(String[] ex: examples){
+			for(int i=0; i<stringCount[attributes-1]; i++){	
+				String exA = ex[attributes-1];
+				String compareTo = strings[attributes-1][i];
+				if(compareTo.equals(exA)){
+					classCount[i]++;
+				}
 			}
 		}
 
-		return 0f;
+		double entropy = 0d;
+		for(double numerator: classCount ){
+			if(numerator!=0)
+				entropy += -xlogx(numerator/denominator);
+		}
+		System.out.println("entropy <- " + entropy);
+		return entropy;
 	}
 
-	public float gain(float[] entropies, float[] weights, float root){
+	public double gain(double[] entropies, double[] weights, double root){
 		//TODO
-		return 0f;
+		
+		double sum = 0d;
+		for(int i=0; i<entropies.length; i++){
+			System.out.println("i <-" + i);
+			double v = -weights[i]*entropies[i];
+			System.out.println("v <-" + v);
+			System.out.println("weights[] <- " + weights[i] + " / entropies[i] <- " + entropies[i]);
+			sum +=  v;
+		}
+		System.out.println("root <- " + root);
+		System.out.println("sum <- " + sum);
+		double gain = root + sum;
+		System.out.println("gain <- " + gain);
+		return gain;
 	}
 
 	public String[][] subsetByAttrib(String[][] examples, int attrib, int clss){
@@ -218,48 +243,53 @@ class ID3 {
 
 	public int bestAttribute(HashSet<Integer> attribs , String[][] examples){
 		
-		float root = entropy(examples);
+		double root = entropy(examples);
+		System.out.println("root entropy <-" + root);
 
-		LinkedList<Float> gainsList = new LinkedList<Float>();
+		LinkedList<Double> gainsList = new LinkedList<Double>();
 		LinkedList<Integer> attribList = new LinkedList<Integer>();
 
-		float[] gainArr = new float[attribs.size()];
+		//double[] gainArr = new double[attribs.size()];
 
 		for(int a: attribs){
 			attribList.push(a);
 			
 			//for one attribute
-			float[] weights = new float[stringCount[a]];
-			float[] entropies = new float[stringCount[a]];
+			double[] weights = new double[stringCount[a]];
+			double[] entropies = new double[stringCount[a]];
 
 			for(int j=0; j<stringCount[a]; j++ ){
 				
 				String[][] subset = subsetByAttrib(examples, a, j);
-
-				weights[j] = subset.length / examples.length;
+				System.out.println("");
+				System.out.println(subset.length + " / " + examples.length);
+				System.out.println();
+				weights[j] = (double) subset.length / (double) examples.length;
 				
 				entropies[j] = entropy(subset);
 			}//end for
 			
-			float gain = gain(entropies, weights, root);
+			double gain = gain(entropies, weights, root);
 			
 			gainsList.push(gain);
 		}// end attributes
 
 
 		Iterator<Integer> attribIter = attribList.iterator();
-		Iterator<Float> gainIter = gainsList.iterator();
+		Iterator<Double> gainIter = gainsList.iterator();
 
 		int bestAttrib = attribList.peek();
-		float bestGain = Float.MIN_VALUE;
+		double bestGain = Double.MIN_VALUE;
 		while(attribIter.hasNext() & gainIter.hasNext()){
 			int currentAttrib = attribIter.next();
-			float currentGain =  gainIter.next();
+			double currentGain =  gainIter.next();
 			if(currentGain>bestGain){
 				bestGain = currentGain;
 				bestAttrib = currentAttrib;
 			}
 		}
+		System.out.println("bestAttrib <- " + bestAttrib);
+		System.out.println("bestGain <- " + bestGain);
 		return bestAttrib;
 
 
@@ -309,7 +339,7 @@ class ID3 {
 	}
 
 	public String[][] removeHeader(String[][] arr){
-		String[][] noHeader = new String[arr.length-2][];
+		String[][] noHeader = new String[arr.length-1][];
 		for(int i=0; i<noHeader.length; i++){
 			noHeader[i] = arr[i+1];
 		}
@@ -324,7 +354,9 @@ class ID3 {
 			attribs.add(i);
 		
 		String[][] justExamples = removeHeader(trainingData);
-
+		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		System.out.println(trainingData.length);
+		System.out.println(justExamples.length);
 		decisionTree = decisionTreeLearning(justExamples, attribs, 0);
 
 	} // train()
@@ -393,6 +425,15 @@ class ID3 {
 		return data;
 	} // parseCSV()
 
+	public void test(String[][] arr){
+		indexStrings(arr);
+		String[][] test = new String[3][];
+		test[0] = new String[]{"a","a","a","a","Yes"};
+		test[1] = new String[]{"a","a","a","a","Yes"};
+		test[2] = new String[]{"a","a","a","a","No"};
+		System.out.print(entropy(test));
+	}
+
 	public static void main(String[] args) throws FileNotFoundException,
 												  IOException {
 		if (args.length != 2)
@@ -404,6 +445,13 @@ class ID3 {
 		//classifier.printStrings();
 		classifier.printTree();
 		classifier.classify(testData);
+
+		//testing
+		//classifier.test(trainingData);
+
+		double n = 3;
+		double d = 6;
+		//System.out.println(-xlogx(n/d)-xlogx(n/d));
 	} // main()
 
 } // class ID3
