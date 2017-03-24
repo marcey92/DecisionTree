@@ -98,33 +98,27 @@ class ID3 {
 	static double xlogx(double x) {
 		return x == 0? 0: x * Math.log(x) / LOG2;
 	} // xlogx()
-
-
+	
 	/*
-	*  -10 <- no children at node
-	*  
+	* Recursive classifier
 	*/
-	public int myclassify(TreeNode node,String[] example){
-		// if no children exist then return value
-		//System.out.println("node.value <- " +node.value);
-		if(node.children == null){
-			// end of tree
+	public int classifier(TreeNode node,String[] example){
+		if(node.children == null){ /* reached leaf */
 			return node.value; 
 		}
-		else{
-			int a = node.value;
-			String exA = example[a];
-			for(int i=0; i<stringCount[a]; i++){
-				String compareTo = strings[a][i];
-				if(compareTo.equals(exA)){
-					//followNode
+		else{ 
+			int attribute = node.value;
+			String exA = example[attribute];
+			for(int i=0; i<stringCount[attribute]; i++){
+				String compareTo = strings[attribute][i];
+				if(compareTo.equals(exA)){ 
 					TreeNode toExplore = node.children[i];
-					return myclassify(toExplore, example);
+					return classifier(toExplore, example);
 				}
 			}
 		}
-		return -1;
-	}//myclassify()
+		return -1;  /* fail statement */
+	}//classifier()
 
 	/** Execute the decision tree on the given examples in testData, and print
 	 *  the resulting class names, one to a line, for each example in testData.
@@ -132,104 +126,102 @@ class ID3 {
 	public void classify(String[][] testData) {
 		if (decisionTree == null)
 			error("Please run training phase before classification");
-		//String[][] examples = removeHeader(testData);
 		for(int i=1; i<testData.length; i++){
-			int ans = myclassify(decisionTree, testData[i]);
+			int ans = classifier(decisionTree, testData[i]);
 			for(int j=0; j<stringCount[attributes-1]; j++){
 				if(ans == j)
 					System.out.println(strings[attributes-1][j]);
 			}
 		}
 	} // classify()
-
 	public boolean isPure(String[][] examples){
 		String[] firstEx = examples[0];
 		for(String[] ex: examples)
 			if(firstEx[attributes-1].equals(ex[attributes-1]) == false)
 				return false;
-		// for each example
 		return true;
-	}
+	} // isPure()
+
+	/*
+	*  My decisionTreeLearning algorithm. Recursive
+	*/
 	public TreeNode decisionTreeLearning(String[][] examples, HashSet<Integer> attribs, int whenEmpty){
-		if(examples.length == 0){
-			return new TreeNode(null,whenEmpty);
+		if(examples.length == 0){ 
+			return new TreeNode(null,whenEmpty); /* if no examples return leaf with majority class */
 		}
 		
-		//do all examples have the same class?
-		if(isPure(examples)){
-			int mv = majorityValue(examples);
-			return new TreeNode(null, mv);
+		if(isPure(examples)){ 
+			int mv = majorityClass(examples);
+			return new TreeNode(null, mv);       /* if examples of same class return leaf that class */
 		}
 		else if(attribs.isEmpty()){
-			int mv = majorityValue(examples);
-			return new TreeNode(null, mv);
+			int mv = majorityClass(examples);
+			return new TreeNode(null, mv);       /* if all atributes tested return lead with majorty class */
 		}
-		else{
-			int bestA = bestAttribute(attribs, examples);
+		else{									 /* otherwise pick nest attribute */
+			int bestA = bestAttribute(attribs, examples); 
 			int aLength = stringCount[bestA];
-			TreeNode tree = new TreeNode(new TreeNode[aLength], bestA);
-			int mv = majorityValue(examples);
+			TreeNode tree = new TreeNode(new TreeNode[aLength], bestA); 
+			int mv = majorityClass(examples);   
 			
-			attribs.remove(bestA);
+			attribs.remove(bestA); /* remove best attribute  */
 
+			/*
+			*  for each class of attribute calculate new branch and
+			*  add branch to children of tree
+			*/
 			for(int i=0; i< aLength; i++){
-				String[][] subArray = subsetByAttrib(examples, bestA, i);
-				TreeNode subTree = decisionTreeLearning(subArray, attribs, mv);
-				tree.children[i] = subTree;
+				String[][] subArray = subsetByAttribClass(examples, bestA, i); 
+				TreeNode branch = decisionTreeLearning(subArray, attribs, mv); 
+				tree.children[i] = branch;  
 			}
-			attribs.add(bestA);
-			return tree;
+			attribs.add(bestA);  /* push best attribute  */
+			return tree; 
 		}
 	}
 
+	/*
+	*  entropy = (for each class) -(subset/examples)log(subset/examples)
+	*/
 	public double entropy(String[][] examples){
-		//TODO
-
 		double denominator = examples.length;
 
 		double[] classCount = new double[stringCount[attributes-1]];
 		for(double c: classCount){
-			c = 0d;
+			c = 0d; 					
 		}
 
 		for(String[] ex: examples){
 			for(int i=0; i<stringCount[attributes-1]; i++){	
 				String exA = ex[attributes-1];
 				String compareTo = strings[attributes-1][i];
-				if(compareTo.equals(exA)){
+				if(compareTo.equals(exA)){ 	/* if example belongs to class ++ */
 					classCount[i]++;
 				}
-			}
-		}
-
+			} // for each class
+		} // for each example
 		double entropy = 0d;
 		for(double numerator: classCount ){
-			if(numerator!=0)
+			if(numerator!=0) 				/* do not calculate if 0, resuts in NaN */
 				entropy += -xlogx(numerator/denominator);
 		}
-		System.out.println("entropy <- " + entropy);
 		return entropy;
-	}
+	} // entropy()
 
-	public double gain(double[] entropies, double[] weights, double root){
-		//TODO
-		
+	/* 
+	*  gain = root +  (for each entopy) -weight*entropy 
+	*/ 
+	public double gain(double[] entropies, double[] weights, double root){		
 		double sum = 0d;
 		for(int i=0; i<entropies.length; i++){
-			System.out.println("i <-" + i);
-			double v = -weights[i]*entropies[i];
-			System.out.println("v <-" + v);
-			System.out.println("weights[] <- " + weights[i] + " / entropies[i] <- " + entropies[i]);
-			sum +=  v;
+ 			double v = -weights[i]*entropies[i]; 	
+			sum +=  v; 
 		}
-		System.out.println("root <- " + root);
-		System.out.println("sum <- " + sum);
 		double gain = root + sum;
-		System.out.println("gain <- " + gain);
 		return gain;
-	}
+	} // gain()
 
-	public String[][] subsetByAttrib(String[][] examples, int attrib, int clss){
+	public String[][] subsetByAttribClass(String[][] examples, int attrib, int clss){
 		LinkedList<String[]> subList = new LinkedList<String[]>();
 				for(String[] ex: examples){
 					String exA = ex[attrib];
@@ -239,47 +231,47 @@ class ID3 {
 					}
 				}
 		return subList.toArray(new String[0][]);
-	}
+	} // subsetByAttribClass()
 
+	/* 
+	*  return the best attribute by calculating entropy and gain
+	*/ 
 	public int bestAttribute(HashSet<Integer> attribs , String[][] examples){
 		
 		double root = entropy(examples);
-		System.out.println("root entropy <-" + root);
 
 		LinkedList<Double> gainsList = new LinkedList<Double>();
 		LinkedList<Integer> attribList = new LinkedList<Integer>();
 
-		//double[] gainArr = new double[attribs.size()];
-
-		for(int a: attribs){
-			attribList.push(a);
+		/* 
+		*  computes gain for each attrbute
+		*/ 
+		for(int a: attribs){ 
+			attribList.push(a); 		   
 			
-			//for one attribute
 			double[] weights = new double[stringCount[a]];
 			double[] entropies = new double[stringCount[a]];
 
 			for(int j=0; j<stringCount[a]; j++ ){
-				
-				String[][] subset = subsetByAttrib(examples, a, j);
-				System.out.println("");
-				System.out.println(subset.length + " / " + examples.length);
-				System.out.println();
-				weights[j] = (double) subset.length / (double) examples.length;
-				
-				entropies[j] = entropy(subset);
-			}//end for
+				String[][] subset = subsetByAttribClass(examples, a, j); 		
+				weights[j] = (double) subset.length / (double) examples.length; 
+				entropies[j] = entropy(subset);									
+			} // for each class of attribute
 			
-			double gain = gain(entropies, weights, root);
+			double gain = gain(entropies, weights, root); 
 			
-			gainsList.push(gain);
-		}// end attributes
+			gainsList.push(gain);		    
+		}// for each attributes
 
 
 		Iterator<Integer> attribIter = attribList.iterator();
 		Iterator<Double> gainIter = gainsList.iterator();
-
 		int bestAttrib = attribList.peek();
 		double bestGain = Double.MIN_VALUE;
+		
+		/* 
+		*  iterate over attibutes and gains to find best attribute
+		*/ 
 		while(attribIter.hasNext() & gainIter.hasNext()){
 			int currentAttrib = attribIter.next();
 			double currentGain =  gainIter.next();
@@ -288,46 +280,28 @@ class ID3 {
 				bestAttrib = currentAttrib;
 			}
 		}
-		System.out.println("bestAttrib <- " + bestAttrib);
-		System.out.println("bestGain <- " + bestGain);
 		return bestAttrib;
+	} // bestAttribute()
 
-
-
-		// //CURRENTY RANDOM TODO
-		// if(attributes.size() == 1){
-		// 	for(int i: attributes){
-		// 		return i;
-		// 	}
-		// }
-		// Random r = new Random();
-		// int a = r.nextInt(attributes.size()-1); //temp
-		// for(int i: attributes){
-		// 	if(a-- == 0)
-		// 		return i;
-		// }
-		// return 0;// for now
-	}
-	public int majorityValue(String[][] examples){
-		//TO DO IF MORE THAN ONE CLASS
+	public int majorityClass(String[][] examples){
 		int[] classCount = new int[stringCount[attributes-1]];
 		for (int c: classCount)
-			c = 0;
+			c = 0;							   
 		
 		for(int i=0; i< classCount.length; i++){
 			String compareTo = strings[attributes-1][i];
 			for(String[] ex: examples){
 				String exClass = ex[attributes-1];
-				if(compareTo.equals(exClass))
-					classCount[i] ++;
-			}
-		}
+				if(compareTo.equals(exClass))  /* if match increase count */ 
+					classCount[i] ++; 
+			} // for each example
+		} //for each class
 		
-		return indexOfMax(classCount); // for now
-	}
+		return indexOfMax(classCount); 
+	} // majorityClass()
 
 	public int indexOfMax(int[] arr){
-		int index = -1; // if length is 0 ... should not be Will Through error so maybe change
+		int index = -1;
 		int max = Integer.MIN_VALUE;
 		for(int i=0; i<arr.length;i++){
 			if(arr[i]>max){
@@ -336,27 +310,35 @@ class ID3 {
 			}
 		}
 		return index;
-	}
+	} // indexOfMax()
 
-	public String[][] removeHeader(String[][] arr){
+	public String[][] removeHead(String[][] arr){
 		String[][] noHeader = new String[arr.length-1][];
-		for(int i=0; i<noHeader.length; i++){
+		for(int i=0; i<noHeader.length; i++)
 			noHeader[i] = arr[i+1];
-		}
 		return noHeader;
-	}
+	} // removeHead()
+
+	/*
+	*  My train method
+	*/
 	public void train(String[][] trainingData) {
 		indexStrings(trainingData);
 
-		//create attributes
+		/*
+		*  Hashset holds attributes 
+		*/
 		HashSet<Integer> attribs = new HashSet<Integer>();
 		for(int i=0; i<attributes-1; i++)
 			attribs.add(i);
+		// for each attribute
 		
-		String[][] justExamples = removeHeader(trainingData);
-		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		System.out.println(trainingData.length);
-		System.out.println(justExamples.length);
+		/*
+		*  removes the header from trainingData becuase
+		*  it affects the entropy score
+		*/
+		String[][] justExamples = removeHead(trainingData);
+
 		decisionTree = decisionTreeLearning(justExamples, attribs, 0);
 
 	} // train()
@@ -425,15 +407,6 @@ class ID3 {
 		return data;
 	} // parseCSV()
 
-	public void test(String[][] arr){
-		indexStrings(arr);
-		String[][] test = new String[3][];
-		test[0] = new String[]{"a","a","a","a","Yes"};
-		test[1] = new String[]{"a","a","a","a","Yes"};
-		test[2] = new String[]{"a","a","a","a","No"};
-		System.out.print(entropy(test));
-	}
-
 	public static void main(String[] args) throws FileNotFoundException,
 												  IOException {
 		if (args.length != 2)
@@ -445,13 +418,6 @@ class ID3 {
 		//classifier.printStrings();
 		classifier.printTree();
 		classifier.classify(testData);
-
-		//testing
-		//classifier.test(trainingData);
-
-		double n = 3;
-		double d = 6;
-		//System.out.println(-xlogx(n/d)-xlogx(n/d));
 	} // main()
 
 } // class ID3
