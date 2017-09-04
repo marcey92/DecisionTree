@@ -9,7 +9,7 @@ You are provided with a skeleton programme to get you started. The skeleton prog
 
 You are also provided with two sets of test files (each containing the two input files and the correct output file). Test with (replacing the relevant file names):
 
-  java ID3 TrainFile.csv TestFile.csv >MyOutput.csv
-  diff MyOutput.csv OutputFile.csv
+    java ID3 TrainFile.csv TestFile.csv >MyOutput.csv
+    diff MyOutput.csv OutputFile.csv
 
 The diff command should give no output if your code is correct. Note that the given test files are very simple tests (the data is taken from the questions in Tutorial 5, so you can check the code step by step). You will need to design your own tests to make sure your code functions correctly under all legal input conditions (e.g. 1 class; 3 or more classes; and cases where the training set can not be perfectly classified).
